@@ -44,6 +44,10 @@ This will generate the output in the console and plot the results.
 
 The code can be modified to other scattering scenarios.
 
+# License
+
+This project is licensed under the MIT License - see the [LICENSE](https://opensource.org/license/mit/) file for details.
+
 # Acknowledgments
 
 This code was written as part of a research project on neutrino-dark matter scattering in blazars, Please refer to the paper for more details.
