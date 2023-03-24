@@ -112,11 +112,11 @@ def events(Emin, Emax):
             for j in range(N):
                 tmp=0.0
                 tmp = np.sum(tobs* phifunc(enn,15, Aval[i],Bval[j])*Afunc(enn))*deltaE
-                print(i,j)
+                print("\rCalculating" + "." * j, end="")
                 data = [Aval[i], Bval[j], tmp]
                 writer.writerow(data)
     end_time = time.time()
-    print("Time taken: ", end_time - start_time,"\n")
+    print("\nTime taken: ", end_time - start_time,"\n")
     plot()
 
 # plots the allowed parameter space of A and B and extracts the plot points A and B
@@ -237,7 +237,7 @@ def plotmvsg(x_coords,y_coords):
 # print("Dark Matter - Neutrino Scattering in Blazars")
 # print("////////////////////////")
 
-text = pyfiglet.figlet_format("Blazar", font="starwars")
+text = pyfiglet.figlet_format("CASCADE SOLVER - BLAZARS", font="starwars")
 print(text)
 # cprint(figlet_format('DM - Neutrino scattering in Blazars', font='starwars'))
 
