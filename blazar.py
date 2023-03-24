@@ -2,7 +2,7 @@ import numpy as np
 import tables
 import time
 import csv
-import os
+import o
 from playsound import playsound
 from threading import Thread
 # import winsound
