@@ -2,16 +2,16 @@ import numpy as np
 import tables
 import time
 import csv
-import o
+import os
 from playsound import playsound
 from threading import Thread
 # import winsound
-import sys
-import cv2
-from ffpyplayer.player import MediaPlayer
+# import sys
+# import cv2
+# from ffpyplayer.player import MediaPlayer
 
 from colorama import init
-init(strip=not sys.stdout.isatty()) # strip colors if stdout is redirected
+init(strip=not sys.stdout.isatty()) # strip colors if stdout is redirectedo
 from termcolor import cprint 
 from pyfiglet import figlet_format
 import pyfiglet
@@ -45,14 +45,18 @@ F3 = 4.119
 # def Afunc(x):
 #     return func(x)[()]
 
+
+# Initial flux
 def phi(x):
     return 10**(-F0 - (F1*np.log10(x))/(1 + F2 * np.abs(np.log10(x))**F3))
 
-def Afuncalt(x):
+# Function that describes the effective area of interaction in experiments like ICECUBE etc
+def Afunc(x):
     y = np.log10(x)
     return 10**(3.57 + 2.007*y -0.5263* y**2 +0.0922 * y**3 -0.0072* y**4)
 
-def get_RHS_matrices(energy_nodes, dxs_array, ReverseTime=False):
+# Function that calculates the Right Hand Side of the Cascade equation 
+def RHS_matrices(energy_nodes, dxs_array, ReverseTime=False):
     NumNodes = len(energy_nodes)
     DeltaE = np.diff(np.log(energy_nodes))
     RHSMatrix = np.zeros((NumNodes, NumNodes))
@@ -62,6 +66,7 @@ def get_RHS_matrices(energy_nodes, dxs_array, ReverseTime=False):
             RHSMatrix[i][j] = DeltaE[j - 1] * dxs_array[j][i] * energy_nodes[j]**-1
     return RHSMatrix
 
+# Function that vectorizes the cascade equation and calculates the eigenvectors and eigenvalues
 def eigcalc(num,a,b):
     logemin = np.log10(290)
     logemax = np.log10(10**4)
@@ -75,14 +80,16 @@ def eigcalc(num,a,b):
     for i in range(num):
         for j in range(num): 
             dxs_array[i][j] = quad(lambda x: a*(energy_nodes[i]/x)* 1/((1 + 2*b*(x-energy_nodes[i]))**2),energy_nodes[i],10**4)[0]
+    
     #getting the RHS matrix using cas.py
-    RHN = get_RHS_matrices(energy_nodes, dxs_array, ReverseTime=False)
+    RHN = RHS_matrices(energy_nodes, dxs_array, ReverseTime=False)
     
     #calculating eigenvalues, eigenvectors and solving for the coefficients
     w, v = LA.eig((-np.diag(sigma_array) + RHN))
     ci = LA.solve(v, phi_0)
     return w, v, ci, energy_nodes
 
+# Intermediate function to evaluate the attenuated flux at required energies
 def phifunc(E,num,a,b):
     w, v, ci, energy_nodes = eigcalc(num,a,b)
     phisol = np.dot(v, (ci*np.exp(w)))
@@ -91,6 +98,8 @@ def phifunc(E,num,a,b):
     # print( np.dot(v, ci)*np.exp(w * a) * energy_nodes**(-2) )
     return phisolinterp(E)
 
+# Calculates events for a range of A and B values (Cross Section (CS) and Differential CS should be parameterized using A and B)
+# Call the function "plottingAvsB" to plot the A vs B allowed parameter space 
 def events(N,Neig):
     Aval = np.logspace(-3,0.0,num=N,endpoint=True) 
     Bval = np.logspace(-6,0,num=N,endpoint=True)
@@ -113,7 +122,7 @@ def events(N,Neig):
         for i in range(N):
             for j in range(N):
                 tmp=0.0
-                tmp = np.sum(tobs* phifunc(enn,Neig, Aval[i],Bval[j])*Afuncalt(enn))*deltaE
+                tmp = np.sum(tobs* phifunc(enn,Neig, Aval[i],Bval[j])*Afunc(enn))*deltaE
                 print(i,j)
                 data = [Aval[i], Bval[j], tmp]
                 writer.writerow(data)
@@ -180,6 +189,8 @@ def videoplay():
         cv2.destroyAllWindows()
     PlayVideo(video_path)
 
+# plots the allowed parameter space of A and B and extracts the plot points A and B
+# to evaluate the required new physics parameters such as coupling and masses of new particles
 
 def plottingAvsB():
     dat_fin = np.loadtxt("events.csv", delimiter=",")
@@ -230,6 +241,8 @@ def plottingAvsB():
     # plt.show()
     
     plotmvsg(x_coords,y_coords)
+
+# Converts the A and B values to the new physics parameters (depends on the parameterization of CS)
 
 def plotmvsg(x_coords,y_coords):
     text = pyfiglet.figlet_format("DM - Neutrino interaction")
@@ -301,6 +314,7 @@ def audio():
 text = pyfiglet.figlet_format("Blazar", font="starwars")
 print(text)
 # cprint(figlet_format('DM - Neutrino scattering in Blazars', font='starwars'))
+
 
 N = int(input("Enter the no of A, B splits: "))
 Neig = int(input("Enter the no of eigenvalue splits: "))
