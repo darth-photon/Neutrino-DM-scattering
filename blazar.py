@@ -3,16 +3,7 @@ import tables
 import time
 import csv
 import os
-from playsound import playsound
-from threading import Thread
-# import winsound
-# import sys
-# import cv2
-# from ffpyplayer.player import MediaPlayer
 
-from colorama import init
-init(strip=not sys.stdout.isatty()) # strip colors if stdout is redirectedo
-from termcolor import cprint 
 from pyfiglet import figlet_format
 import pyfiglet
 
@@ -45,7 +36,6 @@ F3 = 4.119
 # def Afunc(x):
 #     return func(x)[()]
 
-
 # Initial flux
 def phi(x):
     return 10**(-F0 - (F1*np.log10(x))/(1 + F2 * np.abs(np.log10(x))**F3))
@@ -71,10 +61,13 @@ def eigcalc(num,a,b):
     logemin = np.log10(290)
     logemax = np.log10(10**4)
     energy_nodes = np.logspace(logemin, logemax, num)
-    #phi_0
+
+    #phi_0 - intial unattenuated flux
     phi_0 = 10**(-F0-(F1*np.log10(energy_nodes))/(1 + F2 * np.abs(np.log10(energy_nodes))**F3)) 
+
     #cross section matrix
     sigma_array =  (a/b)*(1 - 1/(2*b*energy_nodes) * np.log(1 + 2*b* energy_nodes))
+    
     #differential cross section matrix
     dxs_array  = np.empty([num,num])
     for i in range(num):
@@ -100,14 +93,16 @@ def phifunc(E,num,a,b):
 
 # Calculates events for a range of A and B values (Cross Section (CS) and Differential CS should be parameterized using A and B)
 # Call the function "plottingAvsB" to plot the A vs B allowed parameter space 
-def events(N,Neig):
+
+def events(Emin, Emax):
+    N = 15
     Aval = np.logspace(-3,0.0,num=N,endpoint=True) 
     Bval = np.logspace(-6,0,num=N,endpoint=True)
     dat_fin = np.zeros([N*N,3])
 
     steps = 5000
-    deltaE = (10**4-10**(np.log10(290)))/steps
-    enn = np.linspace(10**(np.log10(290)),10**4,steps)
+    deltaE = (10**np.log10(Emax)-10**np.log10(Emin))/steps
+    enn = np.linspace(10**np.log10(Emin),10**np.log10(Emax),steps)
 
     start_time = time.time()
     if os.path.exists("events.csv"):
@@ -122,77 +117,18 @@ def events(N,Neig):
         for i in range(N):
             for j in range(N):
                 tmp=0.0
-                tmp = np.sum(tobs* phifunc(enn,Neig, Aval[i],Bval[j])*Afunc(enn))*deltaE
+                tmp = np.sum(tobs* phifunc(enn,15, Aval[i],Bval[j])*Afunc(enn))*deltaE
                 print(i,j)
                 data = [Aval[i], Bval[j], tmp]
                 writer.writerow(data)
     end_time = time.time()
     print("Time taken: ", end_time - start_time,"\n")
-    videoplay()
-    plottingAvsB()
-
-def videoplay():
-    # videoName = 'rick.mp4'
-
-    # #create a videoCapture Object (this allow to read frames one by one)
-    # video = cv2.VideoCapture(videoName)
-    # #check it's ok
-    # if video.isOpened():
-    #     print('Video Succefully opened')
-    # else:
-    #     print('Something went wrong check if the video name and path is correct')
-
-
-    # #define a scale lvl for visualization
-    # scaleLevel = 3 #it means reduce the size to 2**(scaleLevel-1)
-
-
-    # windowName = 'Video Reproducer'
-    # cv2.namedWindow(windowName )
-    # #let's reproduce the video
-    # while True:
-    #     ret,frame = video.read() #read a single frame 
-    #     if not ret: #this mean it could not read the frame 
-    #         print("Could not read the frame")   
-    #         cv2.destroyWindow(windowName)
-    #         break
-
-    #     reescaled_frame  = frame
-    #     for i in range(scaleLevel-1):
-    #         reescaled_frame = cv2.pyrDown(reescaled_frame)
-
-    #     cv2.imshow(windowName, reescaled_frame )
-
-    #     waitKey = (cv2.waitKey(1) & 0xFF)
-    #     if  waitKey == ord('q'): #if Q pressed you could do something else with other keypress
-    #         print("closing video and exiting")
-    #         cv2.destroyWindow(windowName)
-    #         video.release()
-    #         break
-    video_path="rick.mp4"
-    def PlayVideo(video_path):
-        video=cv2.VideoCapture(video_path)
-        player = MediaPlayer(video_path)
-        while True:
-            grabbed, frame=video.read()
-            audio_frame, val = player.get_frame()
-            if not grabbed:
-                print("End of video")
-                break
-            if cv2.waitKey(28) & 0xFF == ord("q"):
-                break
-            cv2.imshow("Video", frame)
-            if val != 'eof' and audio_frame is not None:
-                #audio
-                img, t = audio_frame
-        video.release()
-        cv2.destroyAllWindows()
-    PlayVideo(video_path)
-
+    plot()
 # plots the allowed parameter space of A and B and extracts the plot points A and B
 # to evaluate the required new physics parameters such as coupling and masses of new particles
 
-def plottingAvsB():
+def plot():
+    inpt = input("Which plot do you want (AvsB, NP)?")
     dat_fin = np.loadtxt("events.csv", delimiter=",")
     df = pd.DataFrame(dat_fin, columns = ['Column_A','Column_B','Column_C'])
     xcol, ycol, zcol = 'Column_A', 'Column_B', 'Column_C'
@@ -233,18 +169,19 @@ def plottingAvsB():
 
     ax.set_xlim([10**-3, 10**-0.0])
     ax.set_ylim([1e-6, 1e0])
-    if os.path.exists("AvsB_blazar.pdf"):
-        os.remove("AvsB_blazar.pdf")
-    # ax.xaxis.set_minor_locator(tck.AutoMinorLocator())
-    # ax.yaxis.set_minor_locator(tck.AutoMinorLocator())
-    plt.savefig('AvsB_blazar.pdf')
+
+    if inpt=='AvsB':
+        if os.path.exists("AvsB_blazar.pdf"):
+            os.remove("AvsB_blazar.pdf")
+        # ax.xaxis.set_minor_locator(tck.AutoMinorLocator())
+        # ax.yaxis.set_minor_locator(tck.AutoMinorLocator())
+        plt.savefig('AvsB_blazar.pdf')
+    if inpt=='NP':
+        plotmvsg(x_coords,y_coords)
     # plt.show()
-    
-    plotmvsg(x_coords,y_coords)
 
 # Converts the A and B values to the new physics parameters (depends on the parameterization of CS)
-
-def plotmvsg(x_coords,y_coords):
+def NPparameters(x_coords,y_coords):
     text = pyfiglet.figlet_format("DM - Neutrino interaction")
     print(text)
     print("*****************************************************************************\n")
@@ -263,10 +200,10 @@ def plotmvsg(x_coords,y_coords):
     for i in range(len(x_coords)):
         mvsg[i,0] = np.sqrt(dmmass/(y_coords[i]))
         mvsg[i,1] = mvsg[i,0]**2 * np.sqrt(x_coords[i]/(SigmaChi * 10**3)) * np.sqrt(4*np.pi)
-    
-    # mvsg_func = interp1d(mvsg[i,0],mvsg[i,1])
-    # mvsg_dat = [(m_nodes[i],mvsg_func(m_nodes[i])) for i in range(20)]
+    return mvsg, model, dmmass
 
+def plotmvsg(x_coords,y_coords):
+    mvsg, model, dmmass = NPparameters(x_coords,y_coords)
     mpl.rcParams['text.latex.preamble'] = r'\usepackage{mathpazo}'
     plt.rcParams['axes.linewidth'] = 2
     plt.rc('text', usetex=True)
@@ -300,22 +237,16 @@ def plotmvsg(x_coords,y_coords):
         os.remove("mvsg_blazar_mchi="+str(dmmass)+"-"+str(model)+".pdf")
     plt.savefig("mvsg_blazar_mchi="+str(dmmass)+"-"+str(model)+".pdf")
     print("Thy Bidding is done, My Master \n")
-    # playsound('good.mp3')
     # plt.show()
+
 # print("////////////////////////")
 # print("Dark Matter - Neutrino Scattering in Blazars")
 # print("////////////////////////")
-def audio():
-    # playsound('good.mp3')
-    # playsound('laughing.mp3')
-    playsound('MI.mp3')
-    # playsound('blaster.mp3')
 
 text = pyfiglet.figlet_format("Blazar", font="starwars")
 print(text)
 # cprint(figlet_format('DM - Neutrino scattering in Blazars', font='starwars'))
 
-
-N = int(input("Enter the no of A, B splits: "))
-Neig = int(input("Enter the no of eigenvalue splits: "))
-events(N, Neig)
+Emin = float(input("Enter the min energy (TeV): "))
+Emax = float(input("Enter the max energy (TeV): "))
+events(Emin, Emax)
