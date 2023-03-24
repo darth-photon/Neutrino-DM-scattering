@@ -40,6 +40,3 @@ To run the code, navigate to the directory where you have cloned the repository 
 
 This will generate the output in the console and plot the results.
 
-# License 
-
-This project is licensed under the MIT License - see the LICENSE file for details.
