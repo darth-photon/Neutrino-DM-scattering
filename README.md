@@ -51,3 +51,8 @@ This project is licensed under the MIT License - see the [LICENSE](https://opens
 # Acknowledgments
 
 This code was written as part of a research project on neutrino-dark matter scattering in blazars, Please refer to the paper for more details.
+
+# References
+
+1) Arxiv 
+2) Arxiv
