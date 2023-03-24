@@ -86,9 +86,7 @@ def eigcalc(num,a,b):
 def phifunc(E,num,a,b):
     w, v, ci, energy_nodes = eigcalc(num,a,b)
     phisol = np.dot(v, (ci*np.exp(w)))
-    # phisol = phi_0 * np.exp(w * a) * energy_nodes**(-2)
     phisolinterp = interp1d(energy_nodes, phisol)
-    # print( np.dot(v, ci)*np.exp(w * a) * energy_nodes**(-2) )
     return phisolinterp(E)
 
 # Calculates events for a range of A and B values (Cross Section (CS) and Differential CS should be parameterized using A and B)
@@ -105,14 +103,10 @@ def events(Emin, Emax):
     enn = np.linspace(10**np.log10(Emin),10**np.log10(Emax),steps)
 
     start_time = time.time()
-    if os.path.exists("events.csv"):
-        os.remove("events.csv")
-    # thread = Thread(target=audio)
-    # thread.start()
-    # winsound.PlaySound("titanic.mp3", winsound.SND_ALIAS|winsound.SND_ASYNC)
-    # playsound('MI.mp3',False)
-    # time.sleep(0.2)
-    with open('events.csv', mode='a', newline='') as file:
+    if os.path.exists("events_data/events.csv"):
+        os.remove("events_data/events.csv")
+
+    with open('events_data/events.csv', mode='a', newline='') as file:
         writer = csv.writer(file)
         for i in range(N):
             for j in range(N):
@@ -124,12 +118,12 @@ def events(Emin, Emax):
     end_time = time.time()
     print("Time taken: ", end_time - start_time,"\n")
     plot()
+
 # plots the allowed parameter space of A and B and extracts the plot points A and B
 # to evaluate the required new physics parameters such as coupling and masses of new particles
-
 def plot():
-    inpt = input("Which plot do you want (AvsB, NP)?")
-    dat_fin = np.loadtxt("events.csv", delimiter=",")
+    inpt = input("Which plot do you want (AvsB, NP)? ")
+    dat_fin = np.loadtxt("events_data/events.csv", delimiter=",")
     df = pd.DataFrame(dat_fin, columns = ['Column_A','Column_B','Column_C'])
     xcol, ycol, zcol = 'Column_A', 'Column_B', 'Column_C'
     df = df.sort_values(by=[xcol, ycol])
@@ -171,11 +165,11 @@ def plot():
     ax.set_ylim([1e-6, 1e0])
 
     if inpt=='AvsB':
-        if os.path.exists("AvsB_blazar.pdf"):
-            os.remove("AvsB_blazar.pdf")
+        if os.path.exists("plots/AvsB_blazar.pdf"):
+            os.remove("plots/AvsB_blazar.pdf")
         # ax.xaxis.set_minor_locator(tck.AutoMinorLocator())
         # ax.yaxis.set_minor_locator(tck.AutoMinorLocator())
-        plt.savefig('AvsB_blazar.pdf')
+        plt.savefig('plots/AvsB_blazar.pdf')
     if inpt=='NP':
         plotmvsg(x_coords,y_coords)
     # plt.show()
@@ -233,9 +227,9 @@ def plotmvsg(x_coords,y_coords):
 
     # ax.xaxis.set_minor_locator(tck.AutoMinorLocator())
     # ax.yaxis.set_minor_locator(tck.AutoMinorLocator())
-    if os.path.exists("mvsg_blazar_mchi="+str(dmmass)+"-"+str(model)+".pdf"):
-        os.remove("mvsg_blazar_mchi="+str(dmmass)+"-"+str(model)+".pdf")
-    plt.savefig("mvsg_blazar_mchi="+str(dmmass)+"-"+str(model)+".pdf")
+    if os.path.exists("plots/mvsg_blazar_mchi="+str(dmmass)+"-"+str(model)+".pdf"):
+        os.remove("plots/mvsg_blazar_mchi="+str(dmmass)+"-"+str(model)+".pdf")
+    plt.savefig("plots/mvsg_blazar_mchi="+str(dmmass)+"-"+str(model)+".pdf")
     print("Thy Bidding is done, My Master \n")
     # plt.show()
 
