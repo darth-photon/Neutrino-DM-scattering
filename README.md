@@ -40,3 +40,6 @@ To run the code, navigate to the directory where you have cloned the repository 
 
 This will generate the output in the console and plot the results.
 
+# Acknowledgments
+
+This code was written as part of a research project on neutrino-dark matter scattering in blazars, Please refer to the paper for more details.
