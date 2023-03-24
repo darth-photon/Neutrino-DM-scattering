@@ -1,6 +1,6 @@
-# Neutrino-DM-scattering Cascade equation solver
+# Cascade equation solver (Neutrino-DM-scattering in Blazars) 
 
-This code solves the cascade equation that describes neutrino dark matter scattering. It can be generalized to any scattering with some edits
+This code solves the cascade equation that describes neutrino dark matter scattering. It can be generalized to any scattering with some tweaks.
 
 # Installation
 
@@ -39,6 +39,10 @@ To run the code, navigate to the directory where you have cloned the repository 
 `julia neutrino_scattering.jl`
 
 This will generate the output in the console and plot the results.
+
+# Modification for other scenarios
+
+The code can be modified to other scattering scenarios.
 
 # Acknowledgments
 
