@@ -42,16 +42,16 @@ class ces():
         model  = self.model
         return eval(model.xs)   
     
-    # Function that calculates the Right Hand Side of the Cascade equation 
-    def RHS_matrices(self,energy_nodes, dxs_array):
-        self.NumNodes = len(energy_nodes)
-        self.DeltaE = np.diff(np.log(energy_nodes))
-        self.RHSMatrix = np.zeros((self.NumNodes, self.NumNodes))
-        # fill in diagonal terms
-        for i in range(self.NumNodes):  #E_out
-            for j in range(i + 1, self.NumNodes):  #E_in
-                self.RHSMatrix[i][j] = self.DeltaE[j - 1] * dxs_array[j][i] * energy_nodes[j]**-1
-        return self.RHSMatrix
+    # # Function that calculates the Right Hand Side of the Cascade equation 
+    # def RHS_matrices(self,energy_nodes, dxs_array):
+    #     self.NumNodes = len(energy_nodes)
+    #     self.DeltaE = np.diff(np.log(energy_nodes))
+    #     self.RHSMatrix = np.zeros((self.NumNodes, self.NumNodes))
+    #     # fill in diagonal terms
+    #     for i in range(self.NumNodes):  #E_out
+    #         for j in range(i + 1, self.NumNodes):  #E_in
+    #             self.RHSMatrix[i][j] = self.DeltaE[j - 1] * dxs_array[j][i] * energy_nodes[j]**-1
+    #     return self.RHSMatrix
     
     def dxs_eval(self, E, x, a, b):
         model = self.model
@@ -79,7 +79,7 @@ class ces():
 
         #getting the RHS matrix using cas.py
         # RHN = self.RHS_matrices(E, dxs_array)
-        
+
         DeltaE = np.diff(np.log(E))
         RHN = np.zeros((len(E), len(E)))
         # fill in diagonal terms
@@ -108,10 +108,8 @@ class ces():
 
     def events(self,Emin, Emax,t_obs):
         N = 10
-        model = self.model
         Aval = np.logspace(-3,0.0,num=N,endpoint=True) 
         Bval = np.logspace(-6,0,num=N,endpoint=True)
-        dat_fin = np.zeros([N*N,3])
 
         steps = 5000
         deltaE = (10**np.log10(Emax)-10**np.log10(Emin))/steps
