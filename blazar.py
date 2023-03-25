@@ -3,6 +3,7 @@ import tables
 import time
 import csv
 import os
+import warnings
 
 from pyfiglet import figlet_format
 import pyfiglet
@@ -19,97 +20,86 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as tck
 import multiprocessing as mp
 
+text = pyfiglet.figlet_format("CASCADE SOLVER", font="starwars")
+print(text)
+
+print("*******************************************")
+print("Dark Matter - Neutrino Scattering in Blazars\n")
+print("Author: シヴァサンカール ShivaSankar K.A \n")
+print("Affiliation: "+u"素粒子物理、北海道大学\n")
+print("Email: shivasankar.ka@gmail.com")
+print("*******************************************")
+
 class ces():
-    tobs = 898*24*3600
-    F0 = 13.22
-    F1 = 1.498
-    F2 = -0.00167
-    F3 = 4.119
-    # data = pd.read_fwf("IceCube_data_from_2008_to_2017_related_to_analysis_of_TXS_0506+056/Aeff_IC86c.txt", header=None)
-    # data.drop(index=0,inplace=True)
-    # data.columns = ['a','b','c']
-    # data = data.astype(float)
-    # data[['a','b']] = pow(10,data[['a','b']])/1000
-    # func = interp1d(data['a'],data['c'], fill_value="extrapolate", kind='linear')
+    def set_model(self,model):
+        self.model = model  
 
-    # def Afunc(x):
-    #     return func(x)[()]
-
-    # Initial flux
-    def phi(x):
-        return 10**(-F0 - (F1*np.log10(x))/(1 + F2 * np.abs(np.log10(x))**F3))
-
-    # Function that describes the effective area of interaction in experiments like ICECUBE etc
-
-    if os.path.exists("input/Eff_area.csv"):
-        def Afunc(x):
-            data = np.load("input/Eff_area.csv")
-            data = data[1:,:]
-            Afunc = interp1d(data[:,0],data[:,2], fill_value="extrapolate", kind='linear')
-            return Afunc(x)
-    else:
-        def Afunc(x):   
-            y = np.log10(x)
-            return 10**(3.57 + 2.007*y -0.5263* y**2 +0.0922 * y**3 -0.0072* y**4)
-
+    def flux(self,E):
+        model = self.model
+        return eval(model.flux)
+    
+    def sigma_array(self, E, a, b):
+        model  = self.model
+        return eval(model.xs)   
+    
     # Function that calculates the Right Hand Side of the Cascade equation 
-    def RHS_matrices(energy_nodes, dxs_array, ReverseTime=False):
-        NumNodes = len(energy_nodes)
-        DeltaE = np.diff(np.log(energy_nodes))
-        RHSMatrix = np.zeros((NumNodes, NumNodes))
+    def RHS_matrices(self,energy_nodes, dxs_array):
+        self.NumNodes = len(energy_nodes)
+        self.DeltaE = np.diff(np.log(energy_nodes))
+        self.RHSMatrix = np.zeros((self.NumNodes, self.NumNodes))
         # fill in diagonal terms
-        for i in range(NumNodes):  #E_out
-            for j in range(i + 1, NumNodes):  #E_in
-                RHSMatrix[i][j] = DeltaE[j - 1] * dxs_array[j][i] * energy_nodes[j]**-1
-        return RHSMatrix
+        for i in range(self.NumNodes):  #E_out
+            for j in range(i + 1, self.NumNodes):  #E_in
+                self.RHSMatrix[i][j] = self.DeltaE[j - 1] * dxs_array[j][i] * energy_nodes[j]**-1
+        return self.RHSMatrix
+    
+    def dxs_eval(self, E, x, a, b):
+        model = self.model
+        return eval(model.dxs)
+    
+    def eff_area(self,E):
+        model = self.model
+        return eval(model.eff_area)
 
     # Function that vectorizes the cascade equation and calculates the eigenvectors and eigenvalues
-    def eigcalc(num, a, b):
+    def attenuated_flux(self, Energy, num, a, b):
+        model  = self.model
         E = np.logspace(np.log10(290), np.log10(10**4), num)
 
-        if os.path.exists("input/flux.csv"):
-            phi_0 = np.load("input/flux.csv")
-        else:
-            #phi_0 - initial unattenuated flux
-            phi_0 = 10**(-F0-(F1*np.log10(E))/(1 + F2 * np.abs(np.log10(E))**F3)) 
+        phi_0 = self.flux(E)
+        sigma_array = self.sigma_array(E,a,b)
 
-        if os.path.exists("input/cross_section.csv"):
-            sigma_array = np.load("input/cross_section.csv")
-        else:
-            #cross section matrix
-            # eqn = "(a/b)*(1 - 1/(2*b*E) * np.log(1 + 2*b* E))"
-            sigma_array = eval(eqn)
-            # sigma_array =  (a/b)*(1 - 1/(2*b*energy_nodes) * np.log(1 + 2*b* energy_nodes))
-        
-        if os.path.exists("input/diff_cross_section.csv"):
-            dxs_array = np.load("input/diff_cross_section.csv")
-        else:
-            #differential cross section matrix
-            dxs_array  = np.empty([num,num])
-            for i in range(num):
-                for j in range(num): 
-                    dxs_array[i][j] = quad(lambda x: a*(E[i]/x)* 1/((1 + 2*b*(x-E[i]))**2),E[i],10**4)[0]
-        
+        dxs_array  = np.empty([num,num])
+        for i in range(num):
+            # ran = np.linspace(E[i], 10**4, 5000)
+            # tot = np.diff(ran)[1] * np.sum([self.dxs_eval(E[i],x,a,b) for x in ran])
+            for j in range(num): 
+                # dxs_array[i][j] = tot
+                dxs_array[i][j] = quad(lambda x: self.dxs_eval(E[i],x,a,b),E[i],10**4)[0]
+
         #getting the RHS matrix using cas.py
-        RHN = RHS_matrices(E, dxs_array, ReverseTime=False)
+        # RHN = self.RHS_matrices(E, dxs_array)
+
+        DeltaE = np.diff(np.log(E))
+        RHN = np.zeros((len(E), len(E)))
+        # fill in diagonal terms
+        for i in range(len(E)):  #E_out
+            for j in range(i + 1, len(E)):  #E_in
+                RHN[i][j] = DeltaE[j - 1] * dxs_array[j][i] * E[j]**-1
         
         #calculating eigenvalues, eigenvectors and solving for the coefficients
         w, v = LA.eig((-np.diag(sigma_array) + RHN))
         ci = LA.solve(v, phi_0)
-        return w, v, ci, E
-
-    # Intermediate function to evaluate the attenuated flux at required energies
-    def phifunc(E,num,a,b):
-        w, v, ci, energy_nodes = eigcalc(num,a,b)
         phisol = np.dot(v, (ci*np.exp(w)))
-        phisolinterp = interp1d(energy_nodes, phisol)
-        return phisolinterp(E)
+        phisolinterp = interp1d(E, phisol)
+        return phisolinterp(Energy)
 
     # Calculates events for a range of A and B values (Cross Section (CS) and Differential CS should be parameterized using A and B)
     # Call the function "plottingAvsB" to plot the A vs B allowed parameter space 
 
-    def events(Emin, Emax):
-        N = 15
+    def events(self,Emin, Emax,t_obs):
+        N = 10
+        model = self.model
         Aval = np.logspace(-3,0.0,num=N,endpoint=True) 
         Bval = np.logspace(-6,0,num=N,endpoint=True)
         dat_fin = np.zeros([N*N,3])
@@ -127,18 +117,18 @@ class ces():
             for i in range(N):
                 for j in range(N):
                     tmp=0.0
-                    tmp = np.sum(tobs* phifunc(enn,15, Aval[i],Bval[j])*Afunc(enn))*deltaE
+                    tmp = np.sum(t_obs* self.attenuated_flux(enn,15, Aval[i],Bval[j])*self.eff_area(enn))*deltaE
                     print("\rCalculating" + "." * j, end="")
                     data = [Aval[i], Bval[j], tmp]
                     writer.writerow(data)
         end_time = time.time()
         print("\nTime taken: ", end_time - start_time,"\n")
-        plot()
+        self.plot()
 
     # plots the allowed parameter space of A and B and extracts the plot points A and B
     # to evaluate the required new physics parameters such as coupling and masses of new particles
-    def plot():
-        inpt = input("Which plot do you want (AvsB, NP, None)? ")
+    def plot(self):
+        inpt = input("Which plot do you want (AvsB, NP (NewPhysics), None)? ")
         if inpt=='None':
             print("Alright. Understandable, Have a nice day")
         dat_fin = np.loadtxt("events_data/events.csv", delimiter=",")
@@ -187,7 +177,7 @@ class ces():
                 os.remove("plots/AvsB_blazar.pdf")
             plt.savefig('plots/AvsB_blazar.pdf')
         if inpt=='NP':
-            plotmvsg(x_coords,y_coords)
+            self.plotmvsg(x_coords,y_coords)
 
     # Converts the A and B values to the new physics parameters (depends on the parameterization of CS)
     def NPparameters(x_coords,y_coords):
@@ -212,7 +202,7 @@ class ces():
         return mvsg, model, dmmass
 
     def plotmvsg(x_coords,y_coords):
-        mvsg, model, dmmass = NPparameters(x_coords,y_coords)
+        mvsg, model, dmmass = self.NPparameters(x_coords,y_coords)
         mpl.rcParams['text.latex.preamble'] = r'\usepackage{mathpazo}'
         plt.rcParams['axes.linewidth'] = 2
         plt.rc('text', usetex=True)
@@ -242,56 +232,55 @@ class ces():
         plt.savefig("plots/mvsg_blazar_mchi="+str(dmmass)+"-"+str(model)+".pdf")
         print("Thy Bidding is done, My Master \n")
 
-    text = pyfiglet.figlet_format("CASCADE SOLVER", font="starwars")
-    print(text)
-
-    print("*******************************************")
-    print("Dark Matter - Neutrino Scattering in Blazars\n")
-    print("Author: シヴァサンカール ShivaSankar K.A \n")
-    print("Affiliation: "+u"素粒子物理、北海道大学\n")
-    print("Email: shivasankar.ka@gmail.com")
-    print("*******************************************")
-
     # Emin = float(input("Enter the min energy (TeV): "))
     # Emax = float(input("Enter the max energy (TeV): "))
     # eqn = input("Enter the expression for cross section:")
-    
-    
     
 class Model():
     def __init__(self,name, path="./"):
         self.model_name = name
         self.modelpath = path
 
-    def add_input(self,flux,cross_section,diff_cross_section):
+    def add_input(self,flux,cross_section,diff_cross_section,Effective_area):
         if flux==True:
             if os.path.exists(self.modelpath+"input/flux.csv"):
                 self.phi_0 = np.load(self.modelpath+"input/flux.csv")
                 print("Flux intialized")
             else:
-                print("Flux file not found")
+                warnings.warn("Flux file not found: {}".format(self.modelpath+"input/flux.csv"))
         else:
-            self.flux_eqn = flux
-            print("Flux intialized: "+self.flux_eqn)
+            self.flux = flux
+            print("Flux intialized: "+self.flux)
 
         if cross_section==True:
             if os.path.exists(self.modelpath+"input/cross_section.csv"):
-                self.phi_0 = np.load(self.modelpath+"input/cross_section.csv")
+                self.xs = np.load(self.modelpath+"input/cross_section.csv")
                 print("Cross section Intialized")
             else:
-                print("Cross section file not found")
+                warnings.warn("Cross section file not found: {}".format(self.modelpath+"input/cross_section.csv"))
         else:
-            self.xs_eqn = cross_section
-            print("Cross section intialized: "+self.xs_eqn)
+            self.xs = cross_section
+            print("Cross section intialized: "+self.xs)
 
         if diff_cross_section==True:
             if os.path.exists(self.modelpath+"input/diff_cross_section.csv"):
-                self.phi_0 = np.load(self.modelpath+"input/diff_cross_section.csv")
+                self.dxs = np.load(self.modelpath+"input/diff_cross_section.csv")
                 print("Differential cross section intialized")
             else:
                 print("File not Found")
         else:
-            self.dxs_eqn = diff_cross_section
-            print("Flux Intialized: "+self.dxs_eqn)
-    print("done")
+            self.dxs = diff_cross_section
+            print("Flux Intialized: "+self.dxs)
+
+        if Effective_area==True:
+            if os.path.exists(self.modelpath+"input/Eff_area.csv"):
+                self.eff_area = np.load(self.modelpath+"input/Eff_area.csv")
+                data = np.load("input/Eff_area.csv")
+                print("Differential cross section intialized")
+            else:
+                print("File not Found")
+        else:
+            self.eff_area = Effective_area
+            print("Effective Area Intialized: "+self.eff_area)
+    
     # events(Emin, Emax)
