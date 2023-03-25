@@ -62,7 +62,7 @@ class ces():
         return eval(model.eff_area)
 
     # Function that vectorizes the cascade equation and calculates the eigenvectors and eigenvalues
-    def attenuated_flux(self, Energy, num, a, b):
+    def eigcalc(self, Energy, num, a, b):
         model  = self.model
         E = np.logspace(np.log10(290), np.log10(10**4), num)
 
@@ -94,6 +94,15 @@ class ces():
         phisolinterp = interp1d(E, phisol)
         return phisolinterp(Energy)
 
+    # def attenuated_flux(self,E,num,a,b):
+    #     if os.path.exists("events_data/attenuated_flux.csv"):
+    #         phisol = np.genfromtxt("events_data/attenuated_flux.csv", delimiter=',')
+    #     else:
+    #         self.eigcalc(E, num,a,b)
+    #         phisol = np.genfromtxt("events_data/attenuated_flux.csv", delimiter=',')
+    #     print(E.shape,phisol.shape)
+    #     phisolinterp = interp1d(E, phisol)
+    #     return phisolinterp(E)
     # Calculates events for a range of A and B values (Cross Section (CS) and Differential CS should be parameterized using A and B)
     # Call the function "plottingAvsB" to plot the A vs B allowed parameter space 
 
@@ -117,7 +126,7 @@ class ces():
             for i in range(N):
                 for j in range(N):
                     tmp=0.0
-                    tmp = np.sum(t_obs* self.attenuated_flux(enn,15, Aval[i],Bval[j])*self.eff_area(enn))*deltaE
+                    tmp = np.sum(t_obs* self.eigcalc(enn,10, Aval[i],Bval[j])*self.eff_area(enn))*deltaE
                     print("\rCalculating" + "." * j, end="")
                     data = [Aval[i], Bval[j], tmp]
                     writer.writerow(data)
@@ -180,7 +189,7 @@ class ces():
             self.plotmvsg(x_coords,y_coords)
 
     # Converts the A and B values to the new physics parameters (depends on the parameterization of CS)
-    def NPparameters(x_coords,y_coords):
+    def NPparameters(self,x_coords,y_coords):
         text = pyfiglet.figlet_format("DM matter models")
         print(text)
         print("*****************************************************************************\n")
@@ -282,5 +291,3 @@ class Model():
         else:
             self.eff_area = Effective_area
             print("Effective Area Intialized: "+self.eff_area)
-    
-    # events(Emin, Emax)
