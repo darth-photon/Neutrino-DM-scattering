@@ -79,7 +79,7 @@ class ces():
 
         #getting the RHS matrix using cas.py
         # RHN = self.RHS_matrices(E, dxs_array)
-
+        
         DeltaE = np.diff(np.log(E))
         RHN = np.zeros((len(E), len(E)))
         # fill in diagonal terms
@@ -170,8 +170,7 @@ class ces():
         plt.yscale('log')
 
         CP = plt.contour(xvals, yvals, zvals, levels=[0.1], colors='r',linestyles='solid')
-        # plt.tricontourf(xvals, yvals, zvals, levels=[0.1, 0.5], colors='r',linestyles='solid')
-
+    
         x_coords = CP.allsegs[0][0][:, 0]
         y_coords = CP.allsegs[0][0][:, 1]
 
@@ -210,7 +209,7 @@ class ces():
             mvsg[i,1] = mvsg[i,0]**2 * np.sqrt(x_coords[i]/(SigmaChi * 10**3)) * np.sqrt(4*np.pi)
         return mvsg, model, dmmass
 
-    def plotmvsg(x_coords,y_coords):
+    def plotmvsg(self,x_coords,y_coords):
         mvsg, model, dmmass = self.NPparameters(x_coords,y_coords)
         mpl.rcParams['text.latex.preamble'] = r'\usepackage{mathpazo}'
         plt.rcParams['axes.linewidth'] = 2
